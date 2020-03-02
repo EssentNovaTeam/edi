@@ -92,6 +92,20 @@ Refer to the usage section of the module *account_invoice_import*.
    :alt: Try me on Runbot
    :target: https://runbot.odoo-community.org/runbot/226/8.0
 
+Templates for invoice2data
+==========================
+
+This module was written to provide database storage and a semmi-convenient editor for invoice2data templates. By itself, this module does nothing, you need to install some other module that uses invoice2data templates.
+
+Usage
+=====
+
+To use this module, you need to:
+
+#. go to Accounting/Configuration/Invoice2data templates
+#. select or create a template
+#. after selecting a type, you can preview a template by uploading a PDF and pressing ``Preview``
+
 Bug Tracker
 ===========
 
@@ -107,6 +121,10 @@ Contributors
 ------------
 
 * Alexis de Lattre <alexis.delattre@akretion.com>
+* Holger Brunn <hbrunn@therp.nl>
+
+Do not contact contributors directly about help with questions or problems concerning this addon, but use the `community mailing list <mailto:community@mail.odoo.com>`_ or the `appropriate specialized mailinglist <https://odoo-community.org/groups>`_ for help, and the bug tracker linked in `Bug Tracker`_ above for technical issues.
+
 
 Maintainer
 ----------

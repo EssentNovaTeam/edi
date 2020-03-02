@@ -12,7 +12,11 @@
     'website': 'http://www.akretion.com',
     'depends': ['account_invoice_import'],
     'external_dependencies': {'python': ['invoice2data']},
-    'data': [],
+    'data': [
+        'views/invoice2data_template.xml',
+        'security/res_groups.xml',
+        'security/ir.model.access.csv',
+    ],
     'demo': ['demo/demo_data.xml'],
     'images': ['images/sshot-wizard1.png'],
     'installable': True,
