@@ -5,6 +5,7 @@ import cgi
 import base64
 import logging
 import os
+from tempfile import mkstemp
 import pprint
 import sys
 from openerp import _, api, fields, models
@@ -42,7 +43,8 @@ class Invoice2dataTemplate(models.Model):
     _description = 'Template for invoice2data'
 
     name = fields.Char(required=True)
-    template_type = fields.Selection([], 'Type', required=True)
+    template_type = fields.Selection([('po', 'Purchase Order')], 'Type',
+                                     required=False)
     template = fields.Text(required=True)
     preview = fields.Html()
     preview_file = fields.Binary('File')
@@ -57,10 +59,15 @@ class Invoice2dataTemplate(models.Model):
             )
             return
         else:
+            fd, file_name = mkstemp()
+            try:
+                os.write(fd, base64.b64decode(self.preview_file))
+            finally:
+                os.close(fd)
+
             self.preview_text = '<pre>%s</pre>' % cgi.escape(
-                _fork_stdin(base64.b64decode(self.preview_file),
-                            lambda: to_text('-')) or ''
-            )
+                to_text(file_name))
+
         if hasattr(self, '_preview_%s' % self.template_type):
             preview = getattr(self, '_preview_%s' % self.template_type)()
             if preview:

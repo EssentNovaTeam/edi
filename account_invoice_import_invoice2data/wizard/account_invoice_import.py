@@ -53,6 +53,9 @@ class AccountInvoiceImport(models.TransientModel):
         logger.debug(
             'Calling invoice2data.extract_data with templates=%s',
             templates)
+
+        templates += self.env['invoice2data.template'].get_templates('po')
+
         try:
             invoice2data_res = extract_data(file_name, templates=templates)
         except Exception, e:
