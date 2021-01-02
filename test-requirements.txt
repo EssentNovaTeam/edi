@@ -1,0 +1,1 @@
+odoo14-addon-account-tax-unece @ git+https://github.com/trobz/community-data-files@14-mig-account_tax_unece#subdirectory=setup/account_tax_unece
