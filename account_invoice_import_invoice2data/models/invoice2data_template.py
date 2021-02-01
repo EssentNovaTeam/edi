@@ -27,12 +27,15 @@ class Invoice2dataTemplate(models.Model):
     _description = 'Template for invoice2data'
 
     name = fields.Char(required=True)
-    template_type = fields.Selection([('purchase_invoice', 'Purchase Invoice')], 'Type',
-                                     required=False)
+    template_type = fields.Selection(
+        [('purchase_invoice', 'Purchase Invoice')], 'Type', required=False)
     template = fields.Text(required=True)
     preview = fields.Html()
     preview_file = fields.Binary('File')
     preview_text = fields.Html(readonly=True)
+    product_mapping = fields.One2many(
+        'invoice2data.product.mapping', 'template_id')
+    related_partner = fields.Many2one('res.partner')
     test_results = fields.Text(readonly=True)
 
     @api.multi

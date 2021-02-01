@@ -16,6 +16,7 @@
         'security/res_groups.xml',
         'security/ir.model.access.csv',
         'views/invoice2data_template.xml',
+        'views/res_partner.xml',
     ],
     'demo': ['demo/demo_data.xml'],
     'images': ['images/sshot-wizard1.png'],
