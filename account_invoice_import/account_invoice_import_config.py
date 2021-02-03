@@ -21,6 +21,7 @@ class AccountInvoiceImportConfig(models.Model):
         ('nline_no_product', 'Multi Line, No Product'),
         ('nline_static_product', 'Multi Line, Static Product'),
         ('nline_auto_product', 'Multi Line, Auto-selected Product'),
+        ('nline_match_product', 'Multi Line, Map Product'),
         ], string='Method for Invoice Line', required=True,
         default='1line_no_product',
         help="The multi-line methods will not work for PDF invoices "
@@ -46,6 +47,8 @@ class AccountInvoiceImportConfig(models.Model):
         domain=[('type_tax_use', 'in', ('all', 'purchase'))])
     static_product_id = fields.Many2one(
         'product.product', string='Static Product')
+    product_mapping = fields.One2many(
+        'account.invoice.product.mapping', 'invoice_import_id')
 
     @api.constrains('invoice_line_method', 'account_id', 'static_product_id')
     def _check_import_config(self):

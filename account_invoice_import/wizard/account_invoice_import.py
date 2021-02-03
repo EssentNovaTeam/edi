@@ -205,6 +205,12 @@ class AccountInvoiceImport(models.TransientModel):
                 static_vals = {}
             for line in parsed_inv['lines']:
                 il_vals = static_vals.copy()
+                if line.get('name'):
+                    il_vals['name'] = line['name']
+                elif line.get('description'):
+                    il_vals['name'] = line['description']
+                elif not il_vals.get('name'):
+                    il_vals['name'] = _('MISSING DESCRIPTION')
                 if config.invoice_line_method == 'nline_auto_product':
                     product = bdio._match_product(
                         line['product'], parsed_inv['chatter_msg'],
@@ -221,10 +227,36 @@ class AccountInvoiceImport(models.TransientModel):
                     taxes = bdio._match_taxes(
                         line.get('taxes'), parsed_inv['chatter_msg'])
                     il_vals['invoice_line_tax_id'] = taxes.ids
-                if line.get('name'):
-                    il_vals['name'] = line['name']
-                elif not il_vals.get('name'):
-                    il_vals['name'] = _('MISSING DESCRIPTION')
+                elif config.invoice_line_method == 'nline_match_product':
+                    # Set account_id to default value
+                    il_vals['account_id'] = config.account_id.id
+
+                    # Match products
+                    for prod in config.product_mapping:
+                        if prod.recognition_string in il_vals['name']:
+                            account = prod.product_id.property_account_expense
+                            aanalytic = prod.account_analytic_id
+                            tax_ids = prod.product_id.supplier_taxes_id.ids
+                            if prod.product_id:
+                                # Set product id when set in matching table
+                                il_vals['product_id'] = prod.product_id.id
+                            if account:
+                                # Set account_id if property_account_expense is
+                                # set
+                                il_vals['account_id'] = account.id
+
+                            if aanalytic:
+                                # Set account analytic, when account analytic
+                                # is set in the matching table
+                                il_vals['account_analytic_id'] = aanalytic.id
+
+                            # Tax_ids are formatted below, so only pass array
+                            # with ids
+                            il_vals['invoice_line_tax_id'] = tax_ids
+                            # Break, because we only need to map with the first
+                            # match
+                            break
+
                 uom = bdio._match_uom(
                     line.get('uom'), parsed_inv['chatter_msg'])
                 il_vals['uos_id'] = uom.id
@@ -240,7 +272,7 @@ class AccountInvoiceImport(models.TransientModel):
             if line_dict.get('invoice_line_tax_id'):
                 line_dict['invoice_line_tax_id'] = [
                     (6, 0, line_dict['invoice_line_tax_id'])]
-            if aacount_id:
+            if aacount_id and not line_dict.get('account_analytic_id'):
                 line_dict['account_analytic_id'] = aacount_id
         return vals
 
@@ -326,9 +358,9 @@ class AccountInvoiceImport(models.TransientModel):
         if parsed_inv.get('lines'):
             for line in parsed_inv['lines']:
                 line['qty'] = float_round(
-                    line['qty'], precision_digits=prec_uom)
+                    line.get('qty', 1), precision_digits=prec_uom)
                 line['price_unit'] = float_round(
-                    line['price_unit'], precision_digits=prec_pp)
+                    float(line.get('price_unit', 0)), precision_digits=prec_pp)
                 if parsed_inv['type'] == 'in_refund':
                     line['qty'] *= -1
         if 'chatter_msg' not in parsed_inv:

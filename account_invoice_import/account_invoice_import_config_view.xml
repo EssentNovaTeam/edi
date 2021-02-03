@@ -21,7 +21,7 @@
             <group string="Accounting Parameters" name="accounting">
                 <field name="invoice_line_method"/>
                 <field name="account_id"
-                    attrs="{'invisible': [('invoice_line_method', 'not in', ('1line_no_product', 'nline_no_product'))], 'required': [('invoice_line_method', 'in', ('1line_no_product', 'nline_no_product'))]}"/>
+                    attrs="{'invisible': [('invoice_line_method', 'not in', ('1line_no_product', 'nline_no_product', 'nline_match_product'))], 'required': [('invoice_line_method', 'in', ('1line_no_product', 'nline_no_product', 'nline_match_product'))]}"/>
                 <field name="tax_ids"
                     widget="many2many_tags"
                     attrs="{'invisible': [('invoice_line_method', '!=', '1line_no_product')]}"/>
@@ -36,6 +36,17 @@
                 invisible="not context.get('invoice_import_config_main_view')">
                 <field name="partner_ids" nolabel="1" readonly="1"/> <!-- set this field readonly to avoid the frustration of being unable to select an existing partner from this view -->
             </group>
+            <notebook>
+                <page string="Product mapping" attrs="{'invisible': [('invoice_line_method', '!=', 'nline_match_product')]}">
+                    <field name="product_mapping" nolabel="1" widget="one2many_list">
+                        <tree string="Product mapping" editable="bottom">
+                            <field name="recognition_string"/>
+                            <field name="product_id"/>
+                            <field name="account_analytic_id"/>
+                        </tree>
+                    </field>
+                </page>
+            </notebook>
         </form>
     </field>
 </record>

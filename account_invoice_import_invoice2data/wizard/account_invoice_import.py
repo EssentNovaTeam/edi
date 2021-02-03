@@ -90,79 +90,10 @@ class AccountInvoiceImport(models.TransientModel):
             'date_start': invoice2data_res.get('date_start'),
             'date_end': invoice2data_res.get('date_end'),
             'description': invoice2data_res.get('description'),
-            'mapping_lines': invoice2data_res.get('lines', [])
+            'lines': invoice2data_res.get('lines', [])
             }
         if 'amount_untaxed' in invoice2data_res:
             parsed_inv['amount_untaxed'] = invoice2data_res['amount_untaxed']
         if 'amount_tax' in invoice2data_res:
             parsed_inv['amount_tax'] = invoice2data_res['amount_tax']
         return parsed_inv
-
-    @api.model
-    def _prepare_create_invoice_vals(self, parsed_inv):
-        """ Extend invoice with line mapping. """
-        vals = super(AccountInvoiceImport, self)._prepare_create_invoice_vals(
-            parsed_inv)
-        partner = self.env['res.partner'].browse(vals['partner_id'])
-        template = self.env['invoice2data.template'].search([
-            ('related_partner', '=', partner.id)
-        ])
-        config = partner.invoice_import_id
-        if (config.invoice_line_method == 'product_mapping' and
-                parsed_inv.get('mapping_lines')):
-            il_vals = []
-
-            # Get default account_id based on the partner
-            partner_account = template.related_partner.default_account_id
-            for line in parsed_inv.get('mapping_lines'):
-                match = False
-                for prod in template.product_mapping:
-                    if prod.recognition_string in line['description']:
-                        match = True
-                        # Determine the account for this line
-                        account = prod.product_id.property_account_expense
-                        if not account:
-                            if not partner_account:
-                                raise UserError(
-                                    _('No default account set for '
-                                      'res.partner#(%s)' %
-                                      template.related_partner.id))
-                            account = partner_account
-
-                        # Create invoice line based on the matched product
-                        il_vals.append(
-                            (0, False, {
-                                'product_id': prod.product_id.id,
-                                'name': line['description'],
-                                'account_id': account.id,
-                                'account_analytic_id':
-                                    prod.account_analytic_id.id,
-                                'invoice_line_tax_id': [
-                                    (6, 0,
-                                     prod.product_id.supplier_taxes_id.ids)],
-                                'quantity': 1,
-                                'price_unit': line['price_unit']
-                            }))
-                        # Be sure that we add a line only once
-                        break
-
-                if not match:
-                    if not partner_account:
-                        # No product match, and account is missing on the
-                        # partner
-                        raise UserError(
-                            _('No default account set for res.partner#(%s)' %
-                              template.related_partner.id))
-
-                    # No match, create line without product
-                    il_vals.append(
-                        (0, False, {
-                            'name': line['description'],
-                            'account_id': partner_account.id,
-                            'quantity': 1,
-                            'price_unit': line['price_unit']
-                        }))
-
-            vals['invoice_line'] = il_vals
-
-        return vals
