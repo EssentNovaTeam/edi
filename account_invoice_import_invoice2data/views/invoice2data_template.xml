@@ -43,10 +43,8 @@
                           <page string="Product mapping">
                                 <field name="product_mapping" nolabel="1" widget="one2many_list">
                                     <tree string="Product mapping" editable="bottom">
-                                        <field name="rec_name"/>
+                                        <field name="recognition_string"/>
                                         <field name="product_id"/>
-                                        <field name="tax_id"/>
-                                        <field name="account_id"/>
                                         <field name="account_analytic_id"/>
                                     </tree>
                                 </field>

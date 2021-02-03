@@ -103,10 +103,13 @@ class AccountInvoiceImport(models.TransientModel):
         """ Extend invoice with line mapping. """
         vals = super(AccountInvoiceImport, self)._prepare_create_invoice_vals(
             parsed_inv)
+        partner = self.env['res.partner'].browse(vals['partner_id'])
         template = self.env['invoice2data.template'].search([
-            ('related_partner.name', '=', parsed_inv.get('partner')['name'])
+            ('related_partner', '=', partner.id)
         ])
-        if parsed_inv.get('mapping_lines'):
+        config = partner.invoice_import_id
+        if (config.invoice_line_method == 'product_mapping' and
+                parsed_inv.get('mapping_lines')):
             il_vals = []
 
             # Get default account_id based on the partner
@@ -114,27 +117,29 @@ class AccountInvoiceImport(models.TransientModel):
             for line in parsed_inv.get('mapping_lines'):
                 match = False
                 for prod in template.product_mapping:
-                    if prod.rec_name in line['description']:
+                    if prod.recognition_string in line['description']:
                         match = True
-                        # Determine account_id based on the mapping line
-                        if prod.account_id:
-                            product_account = prod.account_id
-                        else:
-                            product_account = (prod.product_id.
-                                               property_account_expense)
+                        # Determine the account for this line
+                        account = prod.product_id.property_account_expense
+                        if not account:
+                            if not partner_account:
+                                raise UserError(
+                                    _('No default account set for '
+                                      'res.partner#(%s)' %
+                                      template.related_partner.id))
+                            account = partner_account
 
                         # Create invoice line based on the matched product
                         il_vals.append(
                             (0, False, {
                                 'product_id': prod.product_id.id,
                                 'name': line['description'],
-                                'account_id': (
-                                    product_account.id if product_account
-                                    else partner_account.id),
+                                'account_id': account.id,
                                 'account_analytic_id':
                                     prod.account_analytic_id.id,
                                 'invoice_line_tax_id': [
-                                    (6, 0, [prod.tax_id.id])],
+                                    (6, 0,
+                                     prod.product_id.supplier_taxes_id.ids)],
                                 'quantity': 1,
                                 'price_unit': line['price_unit']
                             }))

@@ -11,11 +11,7 @@ class AccountInvoiceImportConfig(models.Model):
     _inherit = 'account.invoice.import.config'
 
     # Extend invoice_line_methods with `product_mapping`
-    invoice_line_method = fields.Selection([
-        ('1line_no_product', 'Single Line, No Product'),
-        ('1line_static_product', 'Single Line, Static Product'),
-        ('nline_no_product', 'Multi Line, No Product'),
-        ('nline_static_product', 'Multi Line, Static Product'),
-        ('nline_auto_product', 'Multi Line, Auto-selected Product'),
-        ('product_mapping', 'Multi Line, Product mapping template'),
+    invoice_line_method = fields.Selection(
+        selection_add=[
+            ('product_mapping', 'Multi Line, Product mapping template'),
         ])

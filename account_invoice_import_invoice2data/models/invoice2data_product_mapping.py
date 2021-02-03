@@ -13,17 +13,8 @@ class Invoice2dataProductMapping(models.Model):
 
     account_analytic_id = fields.Many2one(
         'account.analytic.account', 'Analytic Account')
-    account_id = fields.Many2one(
-        'account.account', 'Account')
     product_id = fields.Many2one('product.product')
-    rec_name = fields.Char()
-    tax_id = fields.Many2one(
-        'account.tax', string='Taxes',
-        domain=[('type_tax_use', 'in', ('all', 'purchase'))])
+    recognition_string = fields.Char(
+        help='String to match products, the productname on the invoice line '
+             'should contain this string.')
     template_id = fields.Many2one('invoice2data.template')
-
-    @api.onchange('product_id')
-    def _onchange_product_id(self):
-        """ Set account_id and tax_id based on the product_id. """
-        self.account_id = self.product_id.property_account_expense
-        self.tax_id = self.product_id.supplier_taxes_id
