@@ -21,7 +21,6 @@ class AccountInvoiceImportConfig(models.Model):
         ('nline_no_product', 'Multi Line, No Product'),
         ('nline_static_product', 'Multi Line, Static Product'),
         ('nline_auto_product', 'Multi Line, Auto-selected Product'),
-        ('nline_match_product', 'Multi Line, Map Product'),
         ], string='Method for Invoice Line', required=True,
         default='1line_no_product',
         help="The multi-line methods will not work for PDF invoices "
