@@ -205,26 +205,43 @@ class AccountInvoiceImport(models.TransientModel):
                 static_vals = {}
             for line in parsed_inv['lines']:
                 il_vals = static_vals.copy()
+                if line.get('name'):
+                    il_vals['name'] = line['name']
+                elif line.get('description'):
+                    il_vals['name'] = line['description']
+                elif not il_vals.get('name'):
+                    il_vals['name'] = _('MISSING DESCRIPTION')
                 if config.invoice_line_method == 'nline_auto_product':
-                    product = bdio._match_product(
+                    # Check if we have an invoice2data or xml file
+                    if line.get('description'):
+                        line['product'] = {
+                            'description': line.get('description')
+                        }
+                    match = bdio._match_product(
                         line['product'], parsed_inv['chatter_msg'],
-                        seller=partner)
-                    fposition_id = partner.property_account_position.id
-                    il_vals.update(
-                        ailo.product_id_change(
-                            product.id, product.uom_id.id, type='in_invoice',
-                            partner_id=partner.id,
-                            fposition_id=fposition_id,
-                            company_id=company.id)['value'])
-                    il_vals['product_id'] = product.id
+                        seller=partner, return_dict=True)
+                    if match and match.get('product'):
+                        product = match.get('product')
+                        # When a product is found, create line with product
+                        fposition_id = partner.property_account_position.id
+                        il_vals.update(
+                            ailo.product_id_change(
+                                product.id, product.uom_id.id,
+                                type='in_invoice',
+                                partner_id=partner.id,
+                                fposition_id=fposition_id,
+                                company_id=company.id)['value'])
+                        il_vals['product_id'] = product.id
+
+                        # Modify account_analytic if match contains overwrite
+                        account_analytic = match.get('account_analytic_id')
+                        if account_analytic:
+                            il_vals['account_analytic_id'] = account_analytic
                 elif config.invoice_line_method == 'nline_no_product':
                     taxes = bdio._match_taxes(
                         line.get('taxes'), parsed_inv['chatter_msg'])
                     il_vals['invoice_line_tax_id'] = taxes.ids
-                if line.get('name'):
-                    il_vals['name'] = line['name']
-                elif not il_vals.get('name'):
-                    il_vals['name'] = _('MISSING DESCRIPTION')
+
                 uom = bdio._match_uom(
                     line.get('uom'), parsed_inv['chatter_msg'])
                 il_vals['uos_id'] = uom.id
@@ -240,7 +257,7 @@ class AccountInvoiceImport(models.TransientModel):
             if line_dict.get('invoice_line_tax_id'):
                 line_dict['invoice_line_tax_id'] = [
                     (6, 0, line_dict['invoice_line_tax_id'])]
-            if aacount_id:
+            if aacount_id and not line_dict.get('account_analytic_id'):
                 line_dict['account_analytic_id'] = aacount_id
         return vals
 
