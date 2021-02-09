@@ -292,17 +292,17 @@ class BusinessDocumentImport(models.AbstractModel):
         if product_dict.get('description'):
             config = seller.invoice_import_id
             # Match products
-            for prod in config.product_mapping:
-                if prod.recognition_string in product_dict.get('description'):
-                    aanalytic = prod.account_analytic_id
-                    if prod.product_id:
+            for prod_map in config.product_mapping_ids:
+                if prod_map.recognition_string in product_dict.get('description'):
+                    aanalytic = prod_map.account_analytic_id
+                    if prod_map.product_id:
                         # Set product id when set in matching table
                         if return_dict:
                             return {
-                                'product': prod.product_id,
+                                'product': prod_map.product_id,
                                 'account_analytic_id': aanalytic.id
                             }
-                        return prod.product_id
+                        return prod_map.product_id
                 else:
                     return False
         if product_dict.get('recordset'):

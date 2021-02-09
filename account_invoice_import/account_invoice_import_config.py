@@ -46,7 +46,7 @@ class AccountInvoiceImportConfig(models.Model):
         domain=[('type_tax_use', 'in', ('all', 'purchase'))])
     static_product_id = fields.Many2one(
         'product.product', string='Static Product')
-    product_mapping = fields.One2many(
+    product_mapping_ids = fields.One2many(
         'account.invoice.product.mapping', 'invoice_import_id')
 
     @api.constrains('invoice_line_method', 'account_id', 'static_product_id')
