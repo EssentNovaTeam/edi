@@ -4,9 +4,11 @@
 
 from openerp import models, api, tools, _
 from openerp.exceptions import Warning as UserError
+from math import log
 import os
 from tempfile import mkstemp
 import pkg_resources
+import re
 import logging
 logger = logging.getLogger(__name__)
 
@@ -76,7 +78,32 @@ class AccountInvoiceImport(models.TransientModel):
 
         for line in lines:
             # Manipulate line data to match with account_invoice_import
-            line['price_unit'] = float(line.get('price_unit', 0))
+            price_unit = line.get('price_unit', 0)
+
+            # Search currency information
+            currency = self.env['res.currency'].search([
+                ('name', '=', invoice2data_res.get('currency'))
+            ])
+            if not currency:
+                # Currency not found, fallback to company
+                currency = self.env.user.company_id.currency_id
+
+            decimals = int(log(1 / currency.rounding, 10))
+
+            if decimals >= 1:
+                # remove thousand seperators (, OR .)
+                price_unit = re.sub(
+                    r'\.(?=[\d,]*\,\d{%s}\b)' % decimals, '', price_unit)
+                price_unit = re.sub(
+                    r',(?=[\d,]*\.\d{%s}\b)' % decimals, '', price_unit)
+
+                # Replace deciamel seperator , with .
+                price_unit = price_unit.replace(',', '.')
+            else:
+                # Replace all seperators with EMPTY
+                price_unit = price_unit.replace(',', '').replace('.', '')
+
+            line['price_unit'] = float(price_unit)
             line['qty'] = 1
 
         parsed_inv = {
