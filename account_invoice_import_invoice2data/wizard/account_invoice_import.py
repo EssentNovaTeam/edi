@@ -97,7 +97,7 @@ class AccountInvoiceImport(models.TransientModel):
                 price_unit = re.sub(
                     r',(?=[\d,]*\.\d{%s}\b)' % decimals, '', price_unit)
 
-                # Replace deciamel seperator , with .
+                # Replace decimal seperator , with .
                 price_unit = price_unit.replace(',', '.')
             else:
                 # Replace all seperators with EMPTY
