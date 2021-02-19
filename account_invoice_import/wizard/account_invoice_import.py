@@ -217,26 +217,38 @@ class AccountInvoiceImport(models.TransientModel):
                         line['product'] = {
                             'description': line.get('description')
                         }
-                    match = bdio._match_product(
-                        line['product'], parsed_inv['chatter_msg'],
-                        seller=partner, return_dict=True)
-                    if match and match.get('product'):
-                        product = match.get('product')
-                        # When a product is found, create line with product
-                        fposition_id = partner.property_account_position.id
-                        il_vals.update(
-                            ailo.product_id_change(
-                                product.id, product.uom_id.id,
-                                type='in_invoice',
-                                partner_id=partner.id,
-                                fposition_id=fposition_id,
-                                company_id=company.id)['value'])
-                        il_vals['product_id'] = product.id
+                    if line.get('product'):
+                        match = bdio._match_product(
+                            line['product'], parsed_inv['chatter_msg'],
+                            seller=partner, return_dict=True)
+                        if match and match.get('product'):
+                            product = match.get('product')
+                            # When a product is found, create line with product
+                            fposition_id = partner.property_account_position.id
+                            il_vals.update(
+                                ailo.product_id_change(
+                                    product.id, product.uom_id.id,
+                                    type='in_invoice',
+                                    partner_id=partner.id,
+                                    fposition_id=fposition_id,
+                                    company_id=company.id)['value'])
+                            il_vals['product_id'] = product.id
 
-                        # Modify account_analytic if match contains overwrite
-                        account_analytic = match.get('account_analytic_id')
-                        if account_analytic:
-                            il_vals['account_analytic_id'] = account_analytic
+                            # Modify account_analytic if match contains
+                            # overwrite
+                            account_analytic = match.get('account_analytic_id')
+                            if account_analytic:
+                                il_vals['account_analytic_id'] = \
+                                    account_analytic
+                    else:
+                        # No product, fallback
+                        analytic_id = config.account_analytic_id.id
+                        if analytic_id:
+                            il_vals['account_analytic_id'] = analytic_id
+                        account_id = config.account_id.id
+                        if account_id:
+                            il_vals['account_id'] = account_id
+
                 elif config.invoice_line_method == 'nline_no_product':
                     taxes = bdio._match_taxes(
                         line.get('taxes'), parsed_inv['chatter_msg'])
