@@ -435,6 +435,17 @@ class AccountInvoiceImport(models.TransientModel):
         invoice = self._create_invoice(parsed_inv)
         invoice.message_post(_(
             "This invoice has been created automatically via file import"))
+        if not invoice.tax_line:
+            # Tax line is not set, trigger warning in wizard
+            action = iaao.for_xml_id(
+                'account_invoice_import', 'action_show_no_vat')
+            action.update({
+                'context': {
+                    'invoice_id': invoice.id
+                },
+                })
+            return action
+
         action = iaao.for_xml_id('account', 'action_invoice_tree2')
         action.update({
             'view_mode': 'form,tree,calendar,graph',
@@ -467,19 +478,16 @@ class AccountInvoiceImport(models.TransientModel):
                     invoice.amount_total,
                     parsed_inv['amount_total'],
                     precision_digits=prec)):
-            if not invoice.tax_line:
-                raise UserError(_(
-                    "The total amount is different from the untaxed amount, "
-                    "but no tax has been configured !"))
-            initial_tax_amount = invoice.tax_line[0].amount
-            tax_amount = parsed_inv['amount_total'] -\
-                parsed_inv['amount_untaxed']
-            invoice.tax_line[0].amount = tax_amount
-            cur_symbol = invoice.currency_id.symbol
-            invoice.message_post(
-                'The total tax amount has been forced to %s %s '
-                '(amount computed by Odoo was: %s %s).'
-                % (tax_amount, cur_symbol, initial_tax_amount, cur_symbol))
+            if invoice.tax_line:
+                initial_tax_amount = invoice.tax_line[0].amount
+                tax_amount = parsed_inv['amount_total'] -\
+                    parsed_inv['amount_untaxed']
+                invoice.tax_line[0].amount = tax_amount
+                cur_symbol = invoice.currency_id.symbol
+                invoice.message_post(
+                    'The total tax amount has been forced to %s %s '
+                    '(amount computed by Odoo was: %s %s).'
+                    % (tax_amount, cur_symbol, initial_tax_amount, cur_symbol))
 
     @api.multi
     def update_invoice_lines(self, parsed_inv, invoice, seller):
@@ -639,6 +647,18 @@ class AccountInvoiceImport(models.TransientModel):
         invoice.message_post(_(
             "This invoice has been updated automatically via the import "
             "of file %s") % self.invoice_filename)
+
+        if not invoice.tax_line:
+            # Tax line is not set, trigger warning in wizard
+            action = iaao.for_xml_id(
+                'account_invoice_import', 'action_show_no_vat')
+            action.update({
+                'context': {
+                    'invoice_id': invoice.id
+                },
+                })
+            return action
+
         action = iaao.for_xml_id('account', 'action_invoice_tree2')
         action.update({
             'view_mode': 'form,tree,calendar,graph',
