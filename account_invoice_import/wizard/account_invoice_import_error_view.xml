@@ -8,7 +8,7 @@
         <field name="arch" type="xml">
             <form string="No VAT matched">
                 <group>
-                    <p>There is no matching vat found, please set this by yourself.</p>
+                    <p>There is no matching VAT found, please configure this on the invoice manually.</p>
                 </group>
                 <footer>
                     <button name="view_invoice"

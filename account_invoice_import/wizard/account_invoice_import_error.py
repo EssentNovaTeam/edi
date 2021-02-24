@@ -19,6 +19,7 @@ class AccountInvoiceImportError(models.TransientModel):
     def view_invoice(self):
         """ Method to redirect to the invoice view. """
         self.ensure_one()
+
         invoice_id = self.env.context.get('invoice_id')
         if not invoice_id:
             raise UserError(_("No invoice ID available, wizard failed!"))
@@ -29,5 +30,5 @@ class AccountInvoiceImportError(models.TransientModel):
             'view_mode': 'form,tree,calendar,graph',
             'views': False,
             'res_id': invoice_id,
-            })
+        })
         return action

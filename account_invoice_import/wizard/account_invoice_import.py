@@ -435,7 +435,9 @@ class AccountInvoiceImport(models.TransientModel):
         invoice = self._create_invoice(parsed_inv)
         invoice.message_post(_(
             "This invoice has been created automatically via file import"))
-        if not invoice.tax_line:
+
+        if (invoice.currency_id.compare_amounts(
+                invoice.amount_total, parsed_inv.get('amount_total')) != 0):
             # Tax line is not set, trigger warning in wizard
             action = iaao.for_xml_id(
                 'account_invoice_import', 'action_show_no_vat')
@@ -443,7 +445,7 @@ class AccountInvoiceImport(models.TransientModel):
                 'context': {
                     'invoice_id': invoice.id
                 },
-                })
+            })
             return action
 
         action = iaao.for_xml_id('account', 'action_invoice_tree2')
@@ -451,7 +453,7 @@ class AccountInvoiceImport(models.TransientModel):
             'view_mode': 'form,tree,calendar,graph',
             'views': False,
             'res_id': invoice.id,
-            })
+        })
         return action
 
     @api.model
@@ -485,8 +487,8 @@ class AccountInvoiceImport(models.TransientModel):
                 invoice.tax_line[0].amount = tax_amount
                 cur_symbol = invoice.currency_id.symbol
                 invoice.message_post(
-                    'The total tax amount has been forced to %s %s '
-                    '(amount computed by Odoo was: %s %s).'
+                    _('The total tax amount has been forced to %s %s '
+                      '(amount computed by Odoo was: %s %s).')
                     % (tax_amount, cur_symbol, initial_tax_amount, cur_symbol))
 
     @api.multi
@@ -648,7 +650,8 @@ class AccountInvoiceImport(models.TransientModel):
             "This invoice has been updated automatically via the import "
             "of file %s") % self.invoice_filename)
 
-        if not invoice.tax_line:
+        if (invoice.currency_id.compare_amounts(
+                invoice.amount_total, 100.0) != 0):
             # Tax line is not set, trigger warning in wizard
             action = iaao.for_xml_id(
                 'account_invoice_import', 'action_show_no_vat')
@@ -656,7 +659,7 @@ class AccountInvoiceImport(models.TransientModel):
                 'context': {
                     'invoice_id': invoice.id
                 },
-                })
+            })
             return action
 
         action = iaao.for_xml_id('account', 'action_invoice_tree2')
