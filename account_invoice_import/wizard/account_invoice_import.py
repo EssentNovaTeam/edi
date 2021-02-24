@@ -513,6 +513,8 @@ class AccountInvoiceImport(models.TransientModel):
                 })
         compare_res = self.env['business.document.import'].compare_lines(
             existing_lines, parsed_inv['lines'], chatter, seller=seller)
+        if not compare_res:
+            return True
         for eline, cdict in compare_res['to_update'].iteritems():
             write_vals = {}
             if cdict.get('qty'):
