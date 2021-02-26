@@ -1,5 +1,5 @@
 "id","name","model_id:id","group_id:id","perm_read","perm_write","perm_create","perm_unlink"
 access_invoice2data_template_editor,"Invoice2data templates editor",account_invoice_import_invoice2data.model_invoice2data_template,group_invoice2data_editor,1,1,1,1
 access_invoice2data_template_user,"Invoice2data templates user",account_invoice_import_invoice2data.model_invoice2data_template,group_invoice2data_user,1,0,0,0
-access_product_mapping_editor,"Product mapping editor",account_invoice_import.model_account_invoice_product_mapping,group_invoice2data_editor,1,1,1,1
-access_product_mapping_user,"Product mapping user",account_invoice_import.model_account_invoice_product_mapping,group_invoice2data_user,1,0,0,0
+access_product_mapping_editor,"Product mapping editor",account_invoice_import.model_account_invoice_product_mapping,group_invoice2data_user,1,1,1,1
+access_account_invoice_import_config_cru,"Invoice import config user - CRU",account_invoice_import.model_account_invoice_import_config,group_invoice2data_user,1,1,1,0
