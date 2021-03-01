@@ -303,7 +303,7 @@ class BusinessDocumentImport(models.AbstractModel):
                                 'account_analytic_id': aanalytic.id
                             }
                         return prod_map.product_id
-            # When description is set, there should be an product, ohterwise
+            # When description is set, there should be an product, otherwise
             # return False
             return False
 
