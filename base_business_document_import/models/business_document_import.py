@@ -303,8 +303,10 @@ class BusinessDocumentImport(models.AbstractModel):
                                 'account_analytic_id': aanalytic.id
                             }
                         return prod_map.product_id
-                else:
-                    return False
+            # When description is set, there should be an product, otherwise
+            # return False
+            return False
+
         if product_dict.get('recordset'):
             return product_dict['recordset']
         if product_dict.get('id'):
