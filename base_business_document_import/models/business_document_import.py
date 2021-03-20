@@ -720,7 +720,6 @@ class BusinessDocumentImport(models.AbstractModel):
                 ("unece_due_date_code", "=", tax_dict["unece_due_date_code"]),
                 ("unece_due_date_code", "=", False),
             ]
-        # taxes = ato.search(domain, order="unece_due_date_code")
         taxes = ato.search(domain)
         taxes = taxes.sorted(key=lambda t: t._get_unece_due_date_type_code())
         for tax in taxes:
