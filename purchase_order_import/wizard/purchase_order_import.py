@@ -64,12 +64,12 @@ class PurchaseOrderImport(models.TransientModel):
         xml_files_dict = self.get_xml_files_from_pdf(quote_file)
         if not xml_files_dict:
             raise UserError(_("There are no embedded XML file in this PDF file."))
-        for xml_filename, xml_root in xml_files_dict.iteritems():
+        for xml_filename, xml_root in xml_files_dict.items():
             logger.info("Trying to parse XML file %s", xml_filename)
             try:
                 parsed_quote = self.parse_xml_quote(xml_root)
                 return parsed_quote
-            except:
+            except Exception:
                 continue
         raise UserError(
             _(
@@ -111,7 +111,7 @@ class PurchaseOrderImport(models.TransientModel):
         if filetype in ["application/xml", "text/xml"]:
             try:
                 xml_root = etree.fromstring(quote_file)
-            except:
+            except Exception:
                 raise UserError(_("This XML file is not XML-compliant"))
             pretty_xml_string = etree.tostring(
                 xml_root, pretty_print=True, encoding="UTF-8", xml_declaration=True
@@ -162,7 +162,6 @@ class PurchaseOrderImport(models.TransientModel):
             vals["incoterm_id"] = incoterm.id
         return vals
 
-    @api.multi
     def update_order_lines(self, parsed_quote, order):
         polo = self.env["purchase.order.line"]
         chatter = parsed_quote["chatter_msg"]
@@ -193,7 +192,7 @@ class PurchaseOrderImport(models.TransientModel):
         )
 
         update_option = self.update_option
-        for oline, cdict in compare_res["to_update"].iteritems():
+        for oline, cdict in compare_res["to_update"].items():
             write_vals = {}
             if cdict.get("price_unit"):
                 chatter.append(
@@ -227,8 +226,10 @@ class PurchaseOrderImport(models.TransientModel):
                 oline.write(write_vals)
         if compare_res["to_remove"]:  # we don't delete the lines, only warn
             warn_label = [
-                "{} {} x {}".format(l.product_qty, l.product_uom.name, l.product_id.name)
-                for l in compare_res["to_remove"]
+                "{} {} x {}".format(
+                    line.product_qty, line.product_uom.name, line.product_id.name
+                )
+                for line in compare_res["to_remove"]
             ]
             chatter.append(
                 _("%d order line(s) are not in the imported quotation: %s")
@@ -264,7 +265,6 @@ class PurchaseOrderImport(models.TransientModel):
         vals.pop("order_id")
         return vals
 
-    @api.multi
     def update_rfq_button(self):
         self.ensure_one()
         bdio = self.env["business.document.import"]
@@ -315,7 +315,7 @@ class PurchaseOrderImport(models.TransientModel):
             self.quote_filename,
         )
         order.message_post(
-            _(
+            body=_(
                 "This RFQ has been updated automatically via the import of "
                 "quotation file %s"
             )

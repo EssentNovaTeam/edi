@@ -53,7 +53,7 @@ class TestOrderResponseImportCommon(SavepointCase):
                 "name": cls.product_2.name,
                 "date_planned": fields.Datetime.now(),
                 "product_qty": 10,
-                "product_uom": cls.env.ref("product.product_uom_unit").id,
+                "product_uom": cls.env.ref("uom.product_uom_unit").id,
                 "price_unit": 15,
             }
         )
@@ -64,7 +64,7 @@ class TestOrderResponseImportCommon(SavepointCase):
                 "name": cls.product_2.name,
                 "date_planned": fields.Datetime.now(),
                 "product_qty": 5,
-                "product_uom": cls.env.ref("product.product_uom_unit").id,
+                "product_uom": cls.env.ref("uom.product_uom_unit").id,
                 "price_unit": 25,
             }
         )
@@ -413,7 +413,8 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
         ]
         self.OrderResponseImport.process_data(data)
         self.assertEqual(self.purchase_order.state, "purchase")
-        self.assertEqual(len(self.purchase_order.picking_ids), 2)
+        self.assertEqual(len(self.purchase_order.picking_ids), 1)
+        self.assertTrue(self.purchase_order.picking_ids.backorder_id)
         move_ids = self.line1.move_ids
         self.assertEqual(len(move_ids), 2)
         self.assertEqual(sum(move_ids.mapped("product_qty")), self.line1.product_qty)
@@ -426,11 +427,11 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
             move_confirmed.note,
         )
         move_backorder = move_ids.filtered(
-            lambda s: s.state == "assigned" and s.product_qty == 3
+            lambda s: s.state == "draft" and s.product_qty == 3
         )
         self.assertTrue(move_backorder)
         self.assertEqual(
-            move_backorder.picking_id.backorder_id,
+            move_backorder.picking_id,
             move_confirmed.picking_id,
         )
 
@@ -475,7 +476,8 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
         ]
         self.OrderResponseImport.process_data(data)
         self.assertEqual(self.purchase_order.state, "purchase")
-        self.assertEqual(len(self.purchase_order.picking_ids), 2)
+        self.assertEqual(len(self.purchase_order.picking_ids), 1)
+        self.assertTrue(self.purchase_order.picking_ids.backorder_id)
         # line1
         line1_move_ids = self.line1.move_ids
         self.assertEqual(len(line1_move_ids), 2)
@@ -491,11 +493,11 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
             move_confirmed.note,
         )
         move_backorder = line1_move_ids.filtered(
-            lambda s: s.state == "assigned" and s.product_qty == 3
+            lambda s: s.state == "draft" and s.product_qty == 3
         )
         self.assertTrue(move_backorder)
         self.assertEqual(
-            move_backorder.picking_id.backorder_id,
+            move_backorder.picking_id,
             move_confirmed.picking_id,
         )
         # lin1
@@ -513,11 +515,11 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
             move_confirmed.note,
         )
         move_backorder = line2_move_ids.filtered(
-            lambda s: s.state == "assigned" and s.product_qty == 3
+            lambda s: s.state == "draft" and s.product_qty == 3
         )
         self.assertTrue(move_backorder)
         self.assertEqual(
-            move_backorder.picking_id.backorder_id,
+            move_backorder.picking_id,
             move_confirmed.picking_id,
         )
 
@@ -555,10 +557,10 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
         self.assertEqual(self.purchase_order.state, "purchase")
         self.assertEqual(len(self.purchase_order.picking_ids), 2)
         move_ids = self.line1.move_ids
-        self.assertEqual(len(move_ids), 3)
+        self.assertEqual(len(move_ids), 2)
         self.assertEqual(sum(move_ids.mapped("product_qty")), self.line1.product_qty)
         move_confirmed = move_ids.filtered(
-            lambda s: s.state == "assigned" and s.product_qty == confirmed_qty
+            lambda s: s.state == "assigned" and s.product_qty == 2
         )
         self.assertTrue(move_confirmed)
         self.assertEqual(
@@ -566,18 +568,16 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
             move_confirmed.note,
         )
         move_cancel = move_ids.filtered(
-            lambda s: s.state == "cancel" and s.product_qty == 1
+            lambda s: s.state == "cancel" and s.product_qty == 8
         )
         self.assertTrue(move_cancel)
         self.assertEqual(
             _("No backorder planned by the supplier."),
             move_cancel.note,
         )
-        move_backorder = move_ids.filtered(
-            lambda s: s.state == "assigned" and s.product_qty == 2
-        )
-        self.assertTrue(move_backorder)
+
+        # Be sure that the backorder is for the cancelled line
         self.assertEqual(
-            move_backorder.picking_id.backorder_id,
-            move_confirmed.picking_id,
+            move_confirmed.picking_id.backorder_id.move_ids_without_package,
+            move_cancel,
         )
