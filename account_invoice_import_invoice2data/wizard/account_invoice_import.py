@@ -4,9 +4,11 @@
 
 from openerp import models, api, tools, _
 from openerp.exceptions import Warning as UserError
+from math import log
 import os
 from tempfile import mkstemp
 import pkg_resources
+import re
 import logging
 logger = logging.getLogger(__name__)
 
@@ -50,9 +52,13 @@ class AccountInvoiceImport(models.TransientModel):
         if not exclude_built_in_templates:
             templates += read_templates(
                 pkg_resources.resource_filename('invoice2data', 'templates'))
+
+        templates += self.env['invoice2data.template'].get_templates('purchase_invoice')
+
         logger.debug(
             'Calling invoice2data.extract_data with templates=%s',
             templates)
+
         try:
             invoice2data_res = extract_data(file_name, templates=templates)
         except Exception, e:
@@ -68,6 +74,38 @@ class AccountInvoiceImport(models.TransientModel):
 
     @api.model
     def invoice2data_to_parsed_inv(self, invoice2data_res):
+        lines = invoice2data_res.get('lines', [])
+
+        for line in lines:
+            # Manipulate line data to match with account_invoice_import
+            price_unit = line.get('price_unit', 0)
+
+            # Search currency information
+            currency = self.env['res.currency'].search([
+                ('name', '=', invoice2data_res.get('currency'))
+            ])
+            if not currency:
+                # Currency not found, fallback to company
+                currency = self.env.user.company_id.currency_id
+
+            decimals = int(log(1 / currency.rounding, 10))
+
+            if decimals >= 1:
+                # remove thousand seperators (, OR .)
+                price_unit = re.sub(
+                    r'\.(?=[\d,]*\,\d{%s}\b)' % decimals, '', price_unit)
+                price_unit = re.sub(
+                    r',(?=[\d,]*\.\d{%s}\b)' % decimals, '', price_unit)
+
+                # Replace decimal seperator , with .
+                price_unit = price_unit.replace(',', '.')
+            else:
+                # Replace all seperators with EMPTY
+                price_unit = price_unit.replace(',', '').replace('.', '')
+
+            line['price_unit'] = float(price_unit)
+            line['qty'] = 1
+
         parsed_inv = {
             'partner': {
                 'vat': invoice2data_res.get('vat'),
@@ -86,6 +124,7 @@ class AccountInvoiceImport(models.TransientModel):
             'date_start': invoice2data_res.get('date_start'),
             'date_end': invoice2data_res.get('date_end'),
             'description': invoice2data_res.get('description'),
+            'lines': lines
             }
         if 'amount_untaxed' in invoice2data_res:
             parsed_inv['amount_untaxed'] = invoice2data_res['amount_untaxed']
