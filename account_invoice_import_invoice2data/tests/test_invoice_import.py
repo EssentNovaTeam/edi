@@ -5,7 +5,7 @@
 
 from openerp.tests.common import TransactionCase
 import base64
-from openerp.tools import file_open, float_compare
+from openerp.tools import file_open, float_compare, config
 
 
 class TestInvoiceImport(TransactionCase):
@@ -29,6 +29,13 @@ class TestInvoiceImport(TransactionCase):
         internet_product.supplier_taxes_id = [(6, 0, [frtax.id])]
 
     def test_import_free_invoice(self):
+        """
+        Test if build in templates are used to import invoices
+        """
+        config.__setitem__('invoice2data_exclude_built_in_templates', False)
+        # Be sure we include built in templates
+        self.assertFalse(config.get('invoice2data_exclude_built_in_templates'))
+
         filename = 'invoice_free_fiber_201507.pdf'
         f = file_open(
             'account_invoice_import_invoice2data/tests/pdf/' + filename, 'rb')
