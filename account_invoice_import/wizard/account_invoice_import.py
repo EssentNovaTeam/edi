@@ -205,26 +205,55 @@ class AccountInvoiceImport(models.TransientModel):
                 static_vals = {}
             for line in parsed_inv['lines']:
                 il_vals = static_vals.copy()
+                if line.get('name'):
+                    il_vals['name'] = line['name']
+                elif line.get('description'):
+                    il_vals['name'] = line['description']
+                elif not il_vals.get('name'):
+                    il_vals['name'] = _('MISSING DESCRIPTION')
                 if config.invoice_line_method == 'nline_auto_product':
-                    product = bdio._match_product(
-                        line['product'], parsed_inv['chatter_msg'],
-                        seller=partner)
-                    fposition_id = partner.property_account_position.id
-                    il_vals.update(
-                        ailo.product_id_change(
-                            product.id, product.uom_id.id, type='in_invoice',
-                            partner_id=partner.id,
-                            fposition_id=fposition_id,
-                            company_id=company.id)['value'])
-                    il_vals['product_id'] = product.id
+                    # Check if we have an invoice2data or xml file
+                    if line.get('description'):
+                        line['product'] = {
+                            'description': line.get('description')
+                        }
+                    if line.get('product'):
+                        match = bdio._match_product(
+                            line['product'], parsed_inv['chatter_msg'],
+                            seller=partner, return_dict=True)
+                        if match and match.get('product'):
+                            product = match.get('product')
+                            # When a product is found, create line with product
+                            fposition_id = partner.property_account_position.id
+                            il_vals.update(
+                                ailo.product_id_change(
+                                    product.id, product.uom_id.id,
+                                    type='in_invoice',
+                                    partner_id=partner.id,
+                                    fposition_id=fposition_id,
+                                    company_id=company.id)['value'])
+                            il_vals['product_id'] = product.id
+
+                            # Modify account_analytic if match contains
+                            # overwrite
+                            account_analytic = match.get('account_analytic_id')
+                            if account_analytic:
+                                il_vals['account_analytic_id'] = \
+                                    account_analytic
+                    else:
+                        # No product, fallback
+                        analytic_id = config.account_analytic_id.id
+                        if analytic_id:
+                            il_vals['account_analytic_id'] = analytic_id
+                        account_id = config.account_id.id
+                        if account_id:
+                            il_vals['account_id'] = account_id
+
                 elif config.invoice_line_method == 'nline_no_product':
                     taxes = bdio._match_taxes(
                         line.get('taxes'), parsed_inv['chatter_msg'])
                     il_vals['invoice_line_tax_id'] = taxes.ids
-                if line.get('name'):
-                    il_vals['name'] = line['name']
-                elif not il_vals.get('name'):
-                    il_vals['name'] = _('MISSING DESCRIPTION')
+
                 uom = bdio._match_uom(
                     line.get('uom'), parsed_inv['chatter_msg'])
                 il_vals['uos_id'] = uom.id
@@ -240,7 +269,7 @@ class AccountInvoiceImport(models.TransientModel):
             if line_dict.get('invoice_line_tax_id'):
                 line_dict['invoice_line_tax_id'] = [
                     (6, 0, line_dict['invoice_line_tax_id'])]
-            if aacount_id:
+            if aacount_id and not line_dict.get('account_analytic_id'):
                 line_dict['account_analytic_id'] = aacount_id
         return vals
 
@@ -406,12 +435,25 @@ class AccountInvoiceImport(models.TransientModel):
         invoice = self._create_invoice(parsed_inv)
         invoice.message_post(_(
             "This invoice has been created automatically via file import"))
+
+        if (invoice.currency_id.compare_amounts(
+                invoice.amount_total, parsed_inv.get('amount_total')) != 0):
+            # Tax line is not set, trigger warning in wizard
+            action = iaao.for_xml_id(
+                'account_invoice_import', 'action_show_no_vat')
+            action.update({
+                'context': {
+                    'invoice_id': invoice.id
+                },
+            })
+            return action
+
         action = iaao.for_xml_id('account', 'action_invoice_tree2')
         action.update({
             'view_mode': 'form,tree,calendar,graph',
             'views': False,
             'res_id': invoice.id,
-            })
+        })
         return action
 
     @api.model
@@ -438,19 +480,16 @@ class AccountInvoiceImport(models.TransientModel):
                     invoice.amount_total,
                     parsed_inv['amount_total'],
                     precision_digits=prec)):
-            if not invoice.tax_line:
-                raise UserError(_(
-                    "The total amount is different from the untaxed amount, "
-                    "but no tax has been configured !"))
-            initial_tax_amount = invoice.tax_line[0].amount
-            tax_amount = parsed_inv['amount_total'] -\
-                parsed_inv['amount_untaxed']
-            invoice.tax_line[0].amount = tax_amount
-            cur_symbol = invoice.currency_id.symbol
-            invoice.message_post(
-                'The total tax amount has been forced to %s %s '
-                '(amount computed by Odoo was: %s %s).'
-                % (tax_amount, cur_symbol, initial_tax_amount, cur_symbol))
+            if invoice.tax_line:
+                initial_tax_amount = invoice.tax_line[0].amount
+                tax_amount = parsed_inv['amount_total'] -\
+                    parsed_inv['amount_untaxed']
+                invoice.tax_line[0].amount = tax_amount
+                cur_symbol = invoice.currency_id.symbol
+                invoice.message_post(
+                    _('The total tax amount has been forced to %s %s '
+                      '(amount computed by Odoo was: %s %s).')
+                    % (tax_amount, cur_symbol, initial_tax_amount, cur_symbol))
 
     @api.multi
     def update_invoice_lines(self, parsed_inv, invoice, seller):
@@ -474,6 +513,8 @@ class AccountInvoiceImport(models.TransientModel):
                 })
         compare_res = self.env['business.document.import'].compare_lines(
             existing_lines, parsed_inv['lines'], chatter, seller=seller)
+        if not compare_res:
+            return True
         for eline, cdict in compare_res['to_update'].iteritems():
             write_vals = {}
             if cdict.get('qty'):
@@ -610,6 +651,19 @@ class AccountInvoiceImport(models.TransientModel):
         invoice.message_post(_(
             "This invoice has been updated automatically via the import "
             "of file %s") % self.invoice_filename)
+
+        if (invoice.currency_id.compare_amounts(
+                invoice.amount_total, 100.0) != 0):
+            # Tax line is not set, trigger warning in wizard
+            action = iaao.for_xml_id(
+                'account_invoice_import', 'action_show_no_vat')
+            action.update({
+                'context': {
+                    'invoice_id': invoice.id
+                },
+            })
+            return action
+
         action = iaao.for_xml_id('account', 'action_invoice_tree2')
         action.update({
             'view_mode': 'form,tree,calendar,graph',
