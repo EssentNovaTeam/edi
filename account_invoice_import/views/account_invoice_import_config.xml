@@ -28,7 +28,7 @@
                         <field name="invoice_line_method" />
                         <field
                             name="account_id"
-                            attrs="{'invisible': [('invoice_line_method', 'not in', ('1line_no_product', 'nline_no_product'))], 'required': [('invoice_line_method', 'in', ('1line_no_product', 'nline_no_product'))]}"
+                            attrs="{'invisible': [('invoice_line_method', 'not in', ('1line_no_product', 'nline_no_product', 'nline_auto_product'))], 'required': [('invoice_line_method', 'in', ('1line_no_product', 'nline_no_product', 'nline_auto_product'))]}"
                         />
                         <field
                             name="tax_ids"
@@ -49,6 +49,24 @@
                         />
                     </group>
                 </sheet>
+                <notebook>
+                <page
+                        string="Product mapping"
+                        attrs="{'invisible': [('invoice_line_method', '!=', 'nline_auto_product')]}"
+                    >
+                    <field
+                            name="product_mapping_ids"
+                            nolabel="1"
+                            widget="one2many_list"
+                        >
+                        <tree string="Product mapping" editable="bottom">
+                            <field name="recognition_string" />
+                            <field name="product_id" />
+                            <field name="account_analytic_id" />
+                        </tree>
+                    </field>
+                </page>
+            </notebook>
             </form>
         </field>
     </record>

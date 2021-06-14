@@ -442,7 +442,9 @@ class BusinessDocumentImport(models.AbstractModel):
             )
 
     @api.model
-    def _match_product(self, product_dict, chatter_msg, seller=False):
+    def _match_product(
+        self, product_dict, chatter_msg, seller=False, return_dict=False
+    ):
         """Example:
         product_dict = {
             'barcode': '5449000054227',
@@ -451,6 +453,23 @@ class BusinessDocumentImport(models.AbstractModel):
         """
         ppo = self.env["product.product"]
         self._strip_cleanup_dict(product_dict)
+
+        if seller and seller.invoice_import_id:
+            config = seller.invoice_import_id
+            # Match products
+            for prod_map in config.product_mapping_ids:
+                if prod_map.recognition_string in product_dict.get("description"):
+                    aanalytic = prod_map.account_analytic_id
+                    if prod_map.product_id:
+                        # Set product id when set in matching table
+                        if return_dict:
+                            return {
+                                "product": prod_map.product_id,
+                                "account_analytic_id": aanalytic.id,
+                            }
+                        return prod_map.product_id
+                else:
+                    return False
         if product_dict.get("recordset"):
             return product_dict["recordset"]
         if product_dict.get("id"):
@@ -475,6 +494,7 @@ class BusinessDocumentImport(models.AbstractModel):
             )
             if product:
                 return product
+
             # WARNING: Won't work for multi-variant products
             # because product.supplierinfo is attached to product template
             if seller:

@@ -253,7 +253,6 @@ class AccountInvoiceImport(models.TransientModel):
         if analytic_account:
             for line in vals["invoice_line_ids"]:
                 line[2]["analytic_account_id"] = analytic_account.id
-        return vals
 
     @api.model
     def _prepare_line_vals_1line(self, partner, vals, parsed_inv, import_config):
@@ -306,11 +305,33 @@ class AccountInvoiceImport(models.TransientModel):
             static_vals = {}
         for line in parsed_inv["lines"]:
             il_vals = static_vals.copy()
+            if line.get("name"):
+                il_vals["name"] = line["name"]
+            elif line.get("description"):
+                il_vals["name"] = line["description"]
+            elif not il_vals.get("name"):
+                il_vals["name"] = _("MISSING DESCRIPTION")
+
             if import_config["invoice_line_method"] == "nline_auto_product":
-                product = self._match_product(
-                    line["product"], parsed_inv["chatter_msg"], seller=partner
+                # Check if we have an invoice2data or xml file
+                if line.get("description"):
+                    line["product"] = {"description": line.get("description")}
+                match = self._match_product(
+                    line["product"],
+                    parsed_inv["chatter_msg"],
+                    seller=partner,
+                    return_dict=True,
                 )
+                if type(match) is dict:
+                    product = match.get("product")
+                else:
+                    product = match
+
                 il_vals = {"product_id": product.id, "move_id": vals}
+
+                if type(match) is dict and match.get("aanalytic"):
+                    il_vals["account_analytic_id"] = match.get("aanalytic")
+
                 il_vals = line_model.play_onchanges(il_vals, ["product_id"])
                 il_vals.pop("move_id")
             elif import_config["invoice_line_method"] == "nline_no_product":
