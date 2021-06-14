@@ -65,7 +65,8 @@ class AccountInvoiceImportConfig(models.Model):
         domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]",
     )
     product_mapping_ids = fields.One2many(
-        'account.invoice.product.mapping', 'invoice_import_id')
+        "account.invoice.product.mapping", "invoice_import_id"
+    )
 
     @api.constrains("invoice_line_method", "account_id", "static_product_id")
     def _check_import_config(self):

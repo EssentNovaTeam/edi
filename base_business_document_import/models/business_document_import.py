@@ -443,7 +443,8 @@ class BusinessDocumentImport(models.AbstractModel):
 
     @api.model
     def _match_product(
-            self, product_dict, chatter_msg, seller=False, return_dict=False):
+        self, product_dict, chatter_msg, seller=False, return_dict=False
+    ):
         """Example:
         product_dict = {
             'barcode': '5449000054227',
@@ -457,14 +458,14 @@ class BusinessDocumentImport(models.AbstractModel):
             config = seller.invoice_import_id
             # Match products
             for prod_map in config.product_mapping_ids:
-                if prod_map.recognition_string in product_dict.get('description'):
+                if prod_map.recognition_string in product_dict.get("description"):
                     aanalytic = prod_map.account_analytic_id
                     if prod_map.product_id:
                         # Set product id when set in matching table
                         if return_dict:
                             return {
-                                'product': prod_map.product_id,
-                                'account_analytic_id': aanalytic.id
+                                "product": prod_map.product_id,
+                                "account_analytic_id": aanalytic.id,
                             }
                         return prod_map.product_id
                 else:

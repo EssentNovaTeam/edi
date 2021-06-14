@@ -28,16 +28,8 @@ class TestInvoiceImport(TransactionCase):
         internet_product.supplier_taxes_id = [(6, 0, [frtax.id])]
 
     def test_import_free_invoice(self):
-        """
-        Test if build in templates are used to import invoices
-        """
-        config.__setitem__('invoice2data_exclude_built_in_templates', False)
-        # Be sure we include built in templates
-        self.assertFalse(config.get('invoice2data_exclude_built_in_templates'))
-
-        filename = 'invoice_free_fiber_201507.pdf'
-        f = file_open(
-            'account_invoice_import_invoice2data/tests/pdf/' + filename, 'rb')
+        filename = "invoice_free_fiber_201507.pdf"
+        f = file_open("account_invoice_import_invoice2data/tests/pdf/" + filename, "rb")
         pdf_file = f.read()
         pdf_file_b64 = base64.b64encode(pdf_file)
         wiz = self.env["account.invoice.import"].create(

@@ -23,7 +23,7 @@ Account Invoice Import Invoice2data
     :target: https://runbot.odoo-community.org/runbot/226/12.0
     :alt: Try me on Runbot
 
-|badge1| |badge2| |badge3| |badge4| |badge5| 
+|badge1| |badge2| |badge3| |badge4| |badge5|
 
 This module is an extension of the module *account_invoice_import*: it adds support for regular PDF invoices i.e. PDF invoice that don't have an embedded XML file. It uses the `invoice2data library <https://github.com/invoice-x/invoice2data>`_ which takes care of extracting the text of the PDF invoice, find an existing invoice template and execute the invoice template to extract the useful information from the invoice.
 
@@ -110,8 +110,6 @@ On the output, you will get first the text of the PDF, then some debug info on t
   * 'invoice_number'
   * 'date_due', if this information is available in the text of the PDF file.
 
-<<<<<<< HEAD
-=======
 Usage
 =====
 
@@ -128,7 +126,6 @@ To manage the templates in the database, you need to:
 #. select or create a template
 #. after selecting a type, you can preview a template by uploading a PDF and pressing ``Preview``
 
->>>>>>> 5f4feba5 (Merge invoice2data_template and account_invoice_import_invoice2data)
 Bug Tracker
 ===========
 
