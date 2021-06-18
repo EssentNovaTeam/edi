@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp><data>
+
+    <record model="ir.ui.view" id="import_no_vat">
+        <field name="name">account.invoice.import.no_vat.view</field>
+        <field name="model">account.invoice.import.error</field>
+        <field name="type">form</field>
+        <field name="arch" type="xml">
+            <form string="No VAT matched">
+                <group>
+                    <p>There is no matching VAT found, please configure this on the invoice manually.</p>
+                </group>
+                <footer>
+                    <button name="view_invoice"
+                            string="View imported invoice"
+                            type="object" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="action_show_no_vat">
+        <field name="name">No VAT matched</field>
+        <field name="res_model">account.invoice.import.error</field>
+        <field name="view_id" ref="import_no_vat"/>
+        <field name="view_type">form</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="type">ir.actions.act_window</field>
+    </record>
+
+</data></openerp>
